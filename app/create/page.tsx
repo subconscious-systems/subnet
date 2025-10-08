@@ -1,67 +1,71 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Header } from "@/components/header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { AVAILABLE_TOOLS } from "@/lib/types"
-import { Separator } from "@/components/ui/separator"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Header } from '@/components/header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AVAILABLE_TOOLS } from '@/lib/types';
+import { Separator } from '@/components/ui/separator';
 
 export default function CreatePage() {
-  const router = useRouter()
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [prompt, setPrompt] = useState("")
-  const [selectedTools, setSelectedTools] = useState<string[]>([])
+  const router = useRouter();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
   const handleToolToggle = (tool: string) => {
-    setSelectedTools((prev) => (prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool]))
-  }
+    setSelectedTools((prev) =>
+      prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool],
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const agent = {
       title,
       description,
       prompt,
       tools: selectedTools,
-    }
+    };
 
     try {
-      const response = await fetch("/api/agents", {
-        method: "POST",
+      const response = await fetch('/api/agents', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(agent),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to create agent")
+        throw new Error('Failed to create agent');
       }
 
-      router.push("/")
+      router.push('/');
     } catch (error) {
-      console.error("Error creating agent:", error)
-      alert("Failed to create agent. Please try again.")
+      console.error('Error creating agent:', error);
+      alert('Failed to create agent. Please try again.');
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="container mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-foreground">Create New Agent</h1>
-          <p className="text-muted-foreground">Configure your Subconscious agent with instructions and search tools</p>
+          <h1 className="text-foreground mb-2 text-4xl font-bold">Create New Agent</h1>
+          <p className="text-muted-foreground">
+            Configure your Subconscious agent with instructions and search tools
+          </p>
         </div>
 
         <Card>
@@ -92,7 +96,7 @@ export default function CreatePage() {
                       />
                       <label
                         htmlFor={tool.value}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        className="cursor-pointer text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {tool.label}
                       </label>
@@ -102,7 +106,7 @@ export default function CreatePage() {
               </div>
 
               <Separator />
-              <div className="text-sm text-muted-foreground">
+              <div className="text-muted-foreground text-sm">
                 This information is purely to make your agent discoverable.
               </div>
 
@@ -130,10 +134,18 @@ export default function CreatePage() {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer">
+                <Button
+                  type="submit"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 cursor-pointer"
+                >
                   Create Agent
                 </Button>
-                <Button type="button" variant="outline" onClick={() => router.push("/")} className="flex-1 cursor-pointer">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/')}
+                  className="flex-1 cursor-pointer"
+                >
                   Cancel
                 </Button>
               </div>
@@ -142,5 +154,5 @@ export default function CreatePage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }

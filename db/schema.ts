@@ -1,6 +1,6 @@
-import { integer, pgTable, varchar, text, jsonb } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, text, jsonb } from 'drizzle-orm/pg-core';
 
-export const agentsTable = pgTable("agents", {
+export const agentsTable = pgTable('agents', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
   description: text().notNull(),

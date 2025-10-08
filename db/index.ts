@@ -5,9 +5,7 @@ import * as schema from './schema';
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  throw new Error(
-    'DATABASE_URL must be set to a Neon Postgres connection string.',
-  );
+  throw new Error('DATABASE_URL must be set to a Neon Postgres connection string.');
 }
 
 const sql = neon(url);
