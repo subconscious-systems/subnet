@@ -194,9 +194,11 @@ export default function RunAgentPage() {
                     <div className="prose prose-sm text-foreground bg-muted/50 max-w-none rounded-md border p-3">
                       <pre
                         ref={reasoningRef}
-                        className="bg-background max-h-[200px] overflow-y-auto rounded p-2 text-xs"
+                        className="bg-background max-h-[200px] overflow-y-auto rounded p-2 text-xs whitespace-pre-wrap break-words"
                       >
-                        <code>{JSON.stringify(result?.reasoning, null, 2)}</code>
+                        <code className="whitespace-pre-wrap break-words">
+                          {JSON.stringify(result?.reasoning, null, 2)}
+                        </code>
                       </pre>
                     </div>
                   </div>

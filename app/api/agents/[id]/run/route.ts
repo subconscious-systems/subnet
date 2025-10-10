@@ -51,8 +51,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             stream: true,
           });
 
+          console.log('API KEY', process.env.SUBCONSCIOUS_API_KEY);
+          console.log('Response type:', typeof response);
+          console.log('Response keys:', Object.keys(response));
+          console.log('All response properties:', Object.getOwnPropertyNames(response));
+          console.log(
+            'Response prototype methods:',
+            Object.getOwnPropertyNames(Object.getPrototypeOf(response)),
+          );
+
+          // Check if it has common streaming methods
+          console.log('Has toReadableStream?', typeof (response as any).toReadableStream);
+          console.log('Has [Symbol.asyncIterator]?', typeof response[Symbol.asyncIterator]);
+
           // Stream the response
+          let chunkCount = 0;
           for await (const chunk of response) {
+            chunkCount++;
+            console.log(`Chunk ${chunkCount}:`, chunk);
+
             // Handle different possible chunk structures
             if (!chunk.choices || chunk.choices.length === 0) {
               console.log('No choices in chunk', chunk);
@@ -65,6 +82,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               controller.enqueue(encoder.encode(content));
             }
           }
+
+          console.log(`Finished iterating. Total chunks: ${chunkCount}`);
 
           controller.close();
         } catch (error) {
