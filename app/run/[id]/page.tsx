@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import { parse } from 'partial-json';
 import { cn } from '@/lib/utils';
 import { LoaderCircle } from 'lucide-react';
+import { ReasoningChunk } from '@/components/reasoning-chunk';
 
 export default function RunAgentPage() {
   const params = useParams();
@@ -175,6 +176,7 @@ export default function RunAgentPage() {
 
               {result && (
                 <div>
+                  <ReasoningChunk />
                   <div>
                     <div className="flex items-center gap-2">
                       <h3
