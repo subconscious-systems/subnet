@@ -2,25 +2,59 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AVAILABLE_TOOLS } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import type { Agent } from '@/lib/types';
 
-export default function CreatePage() {
+export default function EditPage() {
+  const params = useParams();
   const router = useRouter();
+
+  const [agentId, setAgentId] = useState<string>('');
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState('');
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function fetchAgent() {
+      const id = params.id as string;
+
+      try {
+        const response = await fetch(`/api/agents/${id}`);
+
+        if (!response.ok) {
+          router.push('/');
+          return;
+        }
+
+        const agent: Agent = await response.json();
+
+        // Pre-fill all form fields with existing agent data
+        setAgentId(agent.id);
+        setTitle(agent.title);
+        setAuthor(agent.author);
+        setDescription(agent.description);
+        setPrompt(agent.prompt);
+        setSelectedTools(agent.tools);
+      } catch (error) {
+        console.error('Error fetching agent:', error);
+        router.push('/');
+      }
+    }
+
+    fetchAgent();
+  }, [params.id, router]);
 
   const handleToolToggle = (tool: string) => {
     setSelectedTools((prev) =>
@@ -40,8 +74,8 @@ export default function CreatePage() {
     };
 
     try {
-      const response = await fetch('/api/agents', {
-        method: 'POST',
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -49,24 +83,28 @@ export default function CreatePage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create agent');
+        throw new Error('Failed to update agent');
       }
 
-      router.push('/');
+      router.push(`/run/${agentId}`);
     } catch (error) {
-      console.error('Error creating agent:', error);
-      alert('Failed to create agent. Please try again.');
+      console.error('Error updating agent:', error);
+      alert('Failed to update agent. Please try again.');
     }
   };
+
+  if (!agentId) {
+    return null;
+  }
 
   return (
     <div className="bg-background min-h-screen">
       <Header />
       <main className="container mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-foreground mb-2 text-4xl font-bold">Create New Agent</h1>
+          <h1 className="text-foreground mb-2 text-4xl font-bold">Edit Agent</h1>
           <p className="text-muted-foreground">
-            Configure your Subconscious agent with instructions and search tools
+            Update your agent's configuration, instructions, and tools
           </p>
         </div>
 
@@ -151,12 +189,12 @@ export default function CreatePage() {
                   type="submit"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 cursor-pointer"
                 >
-                  Create Agent
+                  Save Changes
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => router.push('/')}
+                  onClick={() => router.push(`/run/${agentId}`)}
                   className="flex-1 cursor-pointer"
                 >
                   Cancel

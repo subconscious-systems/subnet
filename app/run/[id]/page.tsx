@@ -6,9 +6,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAuthor, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { Agent } from '@/lib/types';
 import { AVAILABLE_TOOLS } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +17,10 @@ import { parse } from 'partial-json';
 import { cn } from '@/lib/utils';
 import { LoaderCircle } from 'lucide-react';
 import { ReasoningStep } from '@/components/reasoning-step';
+
+import { RiArrowGoBackFill, RiExternalLinkFill, RiGitForkFill } from 'react-icons/ri';
+import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function RunAgentPage() {
   const params = useParams();
@@ -28,6 +33,9 @@ export default function RunAgentPage() {
   const [showRawJson, setShowRawJson] = useState(false);
   const [reasoningTitles, setReasoningTitles] = useState<string[]>([]);
   const reasoningRef = useRef<HTMLPreElement>(null);
+  const [shareTooltip, setShareTooltip] = useState('Share Agent');
+  const [shareTooltipOpen, setShareTooltipOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getToolLabel = (toolValue: string) => {
     const tool = AVAILABLE_TOOLS.find((t) => t.value === toolValue);
@@ -148,6 +156,46 @@ export default function RunAgentPage() {
     setReasoningTitles([]);
   };
 
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareTooltip('Link copied to clipboard');
+      setShareTooltipOpen(true);
+      setTimeout(() => {
+        setShareTooltip('Share Agent');
+        setShareTooltipOpen(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!agent || !confirm(`Are you sure you want to delete "${agent.title}"?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const agentTitle = agent.title;
+
+    try {
+      const response = await fetch(`/api/agents/${agent.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete agent');
+      }
+
+      toast.success(`Agent "${agentTitle}" deleted`);
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      toast.error('Failed to delete agent. Please try again.');
+      setIsDeleting(false);
+    }
+  };
+
   if (!agent) {
     return null;
   }
@@ -161,11 +209,73 @@ export default function RunAgentPage() {
             <div className="mb-2 flex items-start justify-between">
               <div className="flex-1">
                 <CardTitle className="mb-1 text-xl">{agent.title}</CardTitle>
+                <CardAuthor>Author: {agent.author}</CardAuthor>
                 <p className="text-muted-foreground text-sm">{agent.description}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
-                Back
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/edit/${agent.id}`)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Edit Agent</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Delete Agent</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push(`/fork/${agent.id}`)}
+                  >
+                    <RiGitForkFill />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Fork Agent</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip open={shareTooltipOpen} onOpenChange={setShareTooltipOpen}>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleShare}>
+                    <RiExternalLinkFill />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{shareTooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+                    <RiArrowGoBackFill />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Back to Home page</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {agent.tools.map((tool) => (
@@ -214,7 +324,7 @@ export default function RunAgentPage() {
                 <div>
                   {result?.answer && (
                     <div className="mt-4">
-                      <h3 className="text-medium mb-2 font-semibold">Final Result</h3>
+                      <h3 className="text-medium mb-2 font-semibold"> Conclusion</h3>
                       <div className="prose prose-sm text-foreground bg-muted/50 max-w-none rounded-md border p-3">
                         <ReactMarkdown>{result?.answer}</ReactMarkdown>
                       </div>
