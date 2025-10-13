@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, GitFork } from 'lucide-react';
 import { useState } from 'react';
 import { AVAILABLE_TOOLS } from '@/lib/types';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -70,7 +70,7 @@ export function AgentCard({ agent, agentMap, onDelete }: AgentCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <CardTitle className="text-xl">{agent.title}</CardTitle>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               <CardAuthor>Author: {agent.author} </CardAuthor>
               {agent.fork_ref && (
                 <CardAuthor className="text-muted-foreground italic">
@@ -80,14 +80,25 @@ export function AgentCard({ agent, agentMap, onDelete }: AgentCardProps) {
             </div>
             <CardDescription className="line-clamp-2">{agent.description}</CardDescription>
           </div>
-          <div className="flex gap-1 shrink-0">
+          <div className="flex shrink-0 gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-12">
+                  <GitFork className="h-4 w-4" />
+                  <span>{agent.fork_count}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Forks</p>
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link href={`/edit/${agent.id}`}>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                    className="text-muted-foreground h-8 w-8 hover:bg-yellow-100 hover:text-yellow-600"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Pencil className="h-4 w-4" />

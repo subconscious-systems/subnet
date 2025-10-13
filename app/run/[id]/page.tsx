@@ -218,6 +218,7 @@ export default function RunAgentPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push(`/edit/${agent.id}`)}
+                    className="hover:bg-yellow-100 hover:text-yellow-600"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -248,6 +249,7 @@ export default function RunAgentPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push(`/fork/${agent.id}`)}
+                    className="hover:bg-green-100 hover:text-green-600"
                   >
                     <RiGitForkFill />
                   </Button>
@@ -258,7 +260,12 @@ export default function RunAgentPage() {
               </Tooltip>
               <Tooltip open={shareTooltipOpen} onOpenChange={setShareTooltipOpen}>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" onClick={handleShare}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShare}
+                    className="hover:bg-purple-100 hover:text-purple-600"
+                  >
                     <RiExternalLinkFill />
                   </Button>
                 </TooltipTrigger>
