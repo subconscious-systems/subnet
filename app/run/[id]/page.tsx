@@ -14,7 +14,9 @@ import { AVAILABLE_TOOLS } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
 import { parse } from 'partial-json';
 import { cn } from '@/lib/utils';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, AlertTriangle } from 'lucide-react';
+import { ReasoningDisplay } from '@/components/reasoning-display';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RunAgentPage() {
   const params = useParams();
@@ -23,6 +25,7 @@ export default function RunAgentPage() {
   const [result, setResult] = useState<any | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const reasoningRef = useRef<HTMLPreElement>(null);
 
   const getToolLabel = (toolValue: string) => {
@@ -64,7 +67,8 @@ export default function RunAgentPage() {
     if (isRunning || !agent) return;
 
     setIsRunning(true);
-    setResult('');
+    setResult(null);
+    setError(null);
 
     try {
       const response = await fetch(`/api/agents/${agent.id}/run`, {
@@ -72,7 +76,8 @@ export default function RunAgentPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start agent');
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to start agent (${response.status})`);
       }
 
       // Get the readable stream
@@ -100,15 +105,33 @@ export default function RunAgentPage() {
       }
 
       setIsRunning(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error running agent:', error);
-      setResult('Error: Failed to run agent. Please try again.');
+
+      // Determine the error message
+      let errorMessage = 'Failed to run agent. Please try again.';
+
+      if (error.message?.includes('SUBCONSCIOUS_API_KEY')) {
+        errorMessage =
+          'API key not configured. Please check your Subconscious API key configuration.';
+      } else if (error.message?.includes('404')) {
+        errorMessage = 'Agent not found. Please refresh the page and try again.';
+      } else if (error.message?.includes('500')) {
+        errorMessage =
+          'Server error. The Subconscious API may be experiencing issues. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+      setResult(null);
       setIsRunning(false);
     }
   };
 
   const handleReset = () => {
-    setResult('');
+    setResult(null);
+    setError(null);
   };
 
   if (!agent) {
@@ -166,45 +189,76 @@ export default function RunAgentPage() {
                 >
                   {isRunning ? 'Running...' : 'Run Agent'}
                 </Button>
-                {result && (
+                {(result || error) && (
                   <Button variant="outline" onClick={handleReset} disabled={isRunning}>
                     Reset
                   </Button>
                 )}
               </div>
 
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               {result && (
-                <div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3
-                        className={cn(
-                          'mb-2 text-sm font-semibold',
-                          isRunning && 'animate-pulse text-gray-400',
-                        )}
-                      >
-                        Reasoning & Tool Usage{' '}
-                      </h3>
-                      {isRunning && (
-                        <div className="mb-2 flex items-center gap-2">
-                          <LoaderCircle className="h-4 w-4 animate-spin text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="prose prose-sm text-foreground bg-muted/50 max-w-none rounded-md border p-3">
-                      <pre
-                        ref={reasoningRef}
-                        className="bg-background max-h-[200px] overflow-y-auto rounded p-2 text-xs"
-                      >
-                        <code>{JSON.stringify(result?.reasoning, null, 2)}</code>
-                      </pre>
-                    </div>
-                  </div>
+                <div className="space-y-6">
+                  {/* Reasoning Display */}
+                  <ReasoningDisplay
+                    reasoning={result?.reasoning}
+                    isRunning={isRunning}
+                    hasResult={!!result?.answer}
+                  />
+
+                  {/* Final Answer - Moved to top and made more prominent */}
                   {result?.answer && (
-                    <div className="mt-4">
-                      <h3 className="mb-2 text-sm font-semibold">Final Result</h3>
-                      <div className="prose prose-sm text-foreground bg-muted/50 max-w-none rounded-md border p-3">
-                        <ReactMarkdown>{result?.answer}</ReactMarkdown>
+                    <div className="bg-background rounded-lg border p-6">
+                      <h3 className="mb-4 text-lg font-semibold">Final Result</h3>
+                      <div className="prose prose-sm text-foreground max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+                            h1: ({ children }) => (
+                              <h1 className="mt-4 mb-3 text-xl font-bold">{children}</h1>
+                            ),
+                            h2: ({ children }) => (
+                              <h2 className="mt-3 mb-2 text-lg font-semibold">{children}</h2>
+                            ),
+                            h3: ({ children }) => (
+                              <h3 className="mt-2 mb-2 text-base font-semibold">{children}</h3>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="mb-4 list-disc space-y-1 pl-6">{children}</ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="mb-4 list-decimal space-y-1 pl-6">{children}</ol>
+                            ),
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            strong: ({ children }) => (
+                              <strong className="font-semibold">{children}</strong>
+                            ),
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-muted my-4 border-l-4 pl-4 italic">
+                                {children}
+                              </blockquote>
+                            ),
+                            code: ({ children, ...props }) =>
+                              (props as any).inline ? (
+                                <code className="bg-muted rounded px-1.5 py-0.5 text-sm">
+                                  {children}
+                                </code>
+                              ) : (
+                                <pre className="bg-muted my-3 block overflow-x-auto rounded-md p-3">
+                                  <code>{children}</code>
+                                </pre>
+                              ),
+                          }}
+                        >
+                          {result?.answer}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   )}

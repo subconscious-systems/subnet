@@ -2,7 +2,7 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { AVAILABLE_TOOLS } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { AGENT_TEMPLATES, getTemplateById } from '@/lib/agent-templates';
+import type { AgentTemplate } from '@/lib/agent-templates';
 
 export default function CreatePage() {
   const router = useRouter();
@@ -20,11 +29,30 @@ export default function CreatePage() {
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState('');
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
 
   const handleToolToggle = (tool: string) => {
     setSelectedTools((prev) =>
       prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool],
     );
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    if (templateId && templateId !== 'custom') {
+      const template = getTemplateById(templateId);
+      if (template) {
+        setTitle(template.title);
+        setDescription(template.description);
+        setPrompt(template.prompt);
+        setSelectedTools(template.tools);
+      }
+    } else if (templateId === 'custom') {
+      setTitle('');
+      setDescription('');
+      setPrompt('');
+      setSelectedTools([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,8 +97,58 @@ export default function CreatePage() {
         </div>
 
         <Card>
+          <CardHeader>
+            <CardTitle>Choose a Template</CardTitle>
+            <CardDescription>
+              Start with a pre-configured template or create a custom agent from scratch
+            </CardDescription>
+          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="template">Agent Template</Label>
+                <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template to get started..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">Custom Agent (Start from scratch)</SelectItem>
+                    <Separator className="my-2" />
+                    <div className="text-muted-foreground px-2 py-1 text-xs font-semibold">
+                      Research & Analysis
+                    </div>
+                    {AGENT_TEMPLATES.filter(
+                      (t) => t.category === 'research' || t.category === 'analysis',
+                    ).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.title}
+                      </SelectItem>
+                    ))}
+                    <Separator className="my-2" />
+                    <div className="text-muted-foreground px-2 py-1 text-xs font-semibold">
+                      Creative & Productivity
+                    </div>
+                    {AGENT_TEMPLATES.filter(
+                      (t) => t.category === 'creative' || t.category === 'productivity',
+                    ).map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.title}
+                      </SelectItem>
+                    ))}
+                    <Separator className="my-2" />
+                    <div className="text-muted-foreground px-2 py-1 text-xs font-semibold">
+                      Technical
+                    </div>
+                    {AGENT_TEMPLATES.filter((t) => t.category === 'technical').map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
               <div className="space-y-2">
                 <Label htmlFor="prompt">Agent Instructions</Label>
                 <Textarea

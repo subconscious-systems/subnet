@@ -1,8 +1,19 @@
 import 'dotenv/config';
 import { db } from './index';
 import { agentsTable } from './schema';
+import { AGENT_TEMPLATES } from '../lib/agent-templates';
+
+// Get the AI News Synthesizer template
+const newsTemplate = AGENT_TEMPLATES.find((t) => t.id === 'news-synthesizer')!;
 
 const sampleAgents = [
+  // Add the advanced AI News Synthesizer from templates
+  {
+    name: newsTemplate.title,
+    description: newsTemplate.description,
+    prompt: newsTemplate.prompt,
+    tools: newsTemplate.tools,
+  },
   {
     name: 'MIT News Assistant',
     description:
