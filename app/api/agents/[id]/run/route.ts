@@ -12,6 +12,20 @@ const client = new OpenAI({
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Check if API key is configured
+    if (!process.env.SUBCONSCIOUS_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'SUBCONSCIOUS_API_KEY not configured. Please add your API key to the environment variables.',
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     const { id } = await params;
     const agentId = parseInt(id);
 
@@ -19,7 +33,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const agent = await db.select().from(agentsTable).where(eq(agentsTable.id, agentId)).limit(1);
 
     if (!agent || agent.length === 0) {
-      return new Response('Agent not found', { status: 404 });
+      return new Response(JSON.stringify({ error: 'Agent not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const agentData = agent[0];
@@ -67,9 +84,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
 
           controller.close();
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error streaming response:', error);
-          controller.error(error);
+
+          // Send error message through the stream
+          const errorMessage =
+            error?.error?.message || error?.message || 'Failed to connect to Subconscious API';
+          const errorResponse = JSON.stringify({
+            error: errorMessage,
+            reasoning: [],
+            answer: `Error: ${errorMessage}. Please check your API configuration and try again.`,
+          });
+
+          controller.enqueue(encoder.encode(errorResponse));
+          controller.close();
         }
       },
     });
@@ -82,8 +110,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         Connection: 'keep-alive',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in run API:', error);
-    return new Response('Internal Server Error', { status: 500 });
+
+    const errorMessage = error?.message || 'Internal Server Error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
