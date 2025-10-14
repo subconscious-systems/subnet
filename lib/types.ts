@@ -4,6 +4,9 @@ export interface Agent {
   description: string;
   prompt: string;
   tools: string[];
+  author: string;
+  fork_ref?: string;
+  fork_count: number;
 }
 
 export const AVAILABLE_TOOLS = [

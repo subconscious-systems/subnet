@@ -2,25 +2,69 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AVAILABLE_TOOLS } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import type { Agent } from '@/lib/types';
 
-export default function CreatePage() {
+export default function ForkPage() {
+  const params = useParams();
   const router = useRouter();
+
+  // Original agent info (for reference)
+  const [originalAgent, setOriginalAgent] = useState<{
+    id: number;
+    title: string;
+    author: string;
+  } | null>(null);
+
+  // New agent form fields
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState('');
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function fetchAgent() {
+      const id = params.id as string;
+
+      try {
+        const response = await fetch(`/api/agents/${id}`);
+
+        if (!response.ok) {
+          router.push('/');
+          return;
+        }
+
+        const agent: Agent = await response.json();
+
+        // Store original agent info
+        setOriginalAgent({
+          id: agent.id,
+          title: agent.title,
+          author: agent.author,
+        });
+
+        // Pre-fill only prompt and tools
+        setPrompt(agent.prompt);
+        setSelectedTools(agent.tools);
+      } catch (error) {
+        console.error('Error fetching agent:', error);
+        router.push('/');
+      }
+    }
+
+    fetchAgent();
+  }, [params.id, router]);
 
   const handleToolToggle = (tool: string) => {
     setSelectedTools((prev) =>
@@ -37,6 +81,7 @@ export default function CreatePage() {
       description,
       prompt,
       tools: selectedTools,
+      fork_ref: originalAgent?.id,
     };
 
     try {
@@ -59,14 +104,18 @@ export default function CreatePage() {
     }
   };
 
+  if (!originalAgent) {
+    return null;
+  }
+
   return (
     <div className="bg-background min-h-screen">
       <Header />
       <main className="container mx-auto max-w-3xl px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-foreground mb-2 text-4xl font-bold">Create New Agent</h1>
+          <h1 className="text-foreground mb-2 text-4xl font-bold">Fork Agent</h1>
           <p className="text-muted-foreground">
-            Configure your Subconscious agent with instructions and search tools
+            Create your own version of "{originalAgent.title}" by {originalAgent.author}
           </p>
         </div>
 

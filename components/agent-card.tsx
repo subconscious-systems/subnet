@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Agent } from '@/lib/types';
 import {
   Card,
+  CardAuthor,
   CardContent,
   CardDescription,
   CardFooter,
@@ -12,17 +13,26 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, GitFork } from 'lucide-react';
 import { useState } from 'react';
 import { AVAILABLE_TOOLS } from '@/lib/types';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 interface AgentCardProps {
   agent: Agent;
+  agentMap?: Record<string, Agent>;
   onDelete?: (agentId: string) => void;
 }
 
-export function AgentCard({ agent, onDelete }: AgentCardProps) {
+export function AgentCard({ agent, agentMap, onDelete }: AgentCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const getParentAgentName = () => {
+    if (!agent.fork_ref) return null;
+    const parentAgent = agentMap?.[agent.fork_ref];
+    return parentAgent ? parentAgent.title : '[Deceased Agent]';
+  };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,6 +43,8 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
     }
 
     setIsDeleting(true);
+    const agentTitle = agent.title;
+
     try {
       const response = await fetch(`/api/agents/${agent.id}`, {
         method: 'DELETE',
@@ -42,10 +54,11 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
         throw new Error('Failed to delete agent');
       }
 
+      toast.success(`Agent "${agentTitle}" deleted`);
       onDelete?.(agent.id);
     } catch (error) {
       console.error('Error deleting agent:', error);
-      alert('Failed to delete agent. Please try again.');
+      toast.error('Failed to delete agent. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -57,17 +70,62 @@ export function AgentCard({ agent, onDelete }: AgentCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <CardTitle className="text-xl">{agent.title}</CardTitle>
+            <div className="flex flex-wrap items-center gap-1">
+              <CardAuthor>Author: {agent.author} </CardAuthor>
+              {agent.fork_ref && (
+                <CardAuthor className="text-muted-foreground italic">
+                  (Fork of "{getParentAgentName()}")
+                </CardAuthor>
+              )}
+            </div>
             <CardDescription className="line-clamp-2">{agent.description}</CardDescription>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 shrink-0"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex shrink-0 gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-12">
+                  <GitFork className="h-4 w-4" />
+                  <span>{agent.fork_count}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Forks</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href={`/edit/${agent.id}`}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground h-8 w-8 hover:bg-yellow-100 hover:text-yellow-600"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Edit Agent</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Delete Agent</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

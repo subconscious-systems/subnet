@@ -7,6 +7,7 @@ import { AgentCard } from '@/components/agent-card';
 
 export default function HomePage() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentMap, setAgentMap] = useState<Record<string, Agent>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,13 @@ export default function HomePage() {
         }
         const data = await response.json();
         setAgents(data);
+
+        // Build agent map
+        const map: Record<string, Agent> = {};
+        data.forEach((agent: Agent) => {
+          map[agent.id] = agent;
+        });
+        setAgentMap(map);
       } catch (error) {
         console.error('Error fetching agents:', error);
       } finally {
@@ -55,8 +63,12 @@ export default function HomePage() {
               <AgentCard
                 key={agent.id}
                 agent={agent}
+                agentMap={agentMap}
                 onDelete={(agentId) => {
                   setAgents(agents.filter((a) => a.id !== agentId));
+                  const newMap = { ...agentMap };
+                  delete newMap[agentId];
+                  setAgentMap(newMap);
                 }}
               />
             ))}
