@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { agentsTable } from '@/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 // GET /api/agents - Get first 50 agents
 export async function GET() {
   try {
-    const agents = await db.select().from(agentsTable).orderBy(desc(agentsTable.id)).limit(50);
+    const agents = await db
+      .select({
+        id: agentsTable.id,
+        name: agentsTable.name,
+        description: agentsTable.description,
+        prompt: agentsTable.prompt,
+        tools: agentsTable.tools,
+        author: agentsTable.author,
+        fork_ref: agentsTable.fork_ref,
+        fork_count: sql<number>`(
+          SELECT COUNT(*)::int
+          FROM agents AS forks
+          WHERE forks.fork_ref = agents.id
+        )`.as('fork_count'),
+      })
+      .from(agentsTable)
+      .orderBy(desc(agentsTable.id))
+      .limit(50);
+
+    console.log('AGENTS', agents);
 
     // Map database fields to match Agent interface
     const mappedAgents = agents.map((agent) => ({
@@ -15,6 +34,9 @@ export async function GET() {
       description: agent.description,
       prompt: agent.prompt,
       tools: (agent.tools as string[]) || [],
+      author: agent.author,
+      fork_ref: agent.fork_ref?.toString(),
+      fork_count: agent.fork_count,
     }));
 
     return NextResponse.json(mappedAgents);
@@ -28,9 +50,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, prompt, tools } = body;
+    const { title, description, prompt, tools, author, fork_ref } = body;
 
-    if (!title || !description || !prompt) {
+    if (!title || !description || !prompt || !author) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -41,6 +63,8 @@ export async function POST(request: NextRequest) {
         description,
         prompt,
         tools: tools || [],
+        author,
+        fork_ref: fork_ref ? parseInt(fork_ref) : undefined,
       })
       .returning();
 
@@ -51,6 +75,8 @@ export async function POST(request: NextRequest) {
       description: newAgent.description,
       prompt: newAgent.prompt,
       tools: (newAgent.tools as string[]) || [],
+      author: newAgent.author,
+      fork_ref: newAgent.fork_ref?.toString(),
     };
 
     return NextResponse.json(mappedAgent, { status: 201 });

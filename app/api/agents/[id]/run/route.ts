@@ -32,8 +32,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       type: tool as any,
     })) as any;
 
-    console.log('Tools', tools);
-
     // Create a streaming response using ReadableStream
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -61,7 +59,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
             const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
-              console.log('Content in chunk', content);
               controller.enqueue(encoder.encode(content));
             }
           }
